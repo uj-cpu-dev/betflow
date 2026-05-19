@@ -1,5 +1,6 @@
 package com.services.user_service.service;
 
+import com.services.user_service.service.JwtService;
 import com.services.user_service.dto.RegisterRequest;
 import com.services.user_service.dto.UserResponse;
 import com.services.user_service.exception.UserAlreadyExistsException;
@@ -19,6 +20,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Transactional
     public UserResponse register(RegisterRequest request) {
@@ -44,18 +46,22 @@ public class UserService {
 
         user.setWallet(wallet);
         User saved = userRepository.save(user);
+        userRepository.flush();
+        User refreshed = userRepository.findById(saved.getId()).orElseThrow();
+        String token = jwtService.generateToken(saved);
 
-        return toResponse(saved);
+        return toResponse(refreshed, token);
     }
 
-    private UserResponse toResponse(User user) {
+    private UserResponse toResponse(User user, String token) {
         return new UserResponse(
                 user.getId(),
                 user.getEmail(),
                 user.getUsername(),
                 user.getRole().name(),
                 user.getWallet() != null ? user.getWallet().getBalance() : BigDecimal.ZERO,
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                token
         );
     }
 }

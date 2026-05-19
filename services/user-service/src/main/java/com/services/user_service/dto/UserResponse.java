@@ -10,5 +10,6 @@ public record UserResponse(
         String username,
         String role,
         BigDecimal walletBalance,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String accessToken
 ) {}
