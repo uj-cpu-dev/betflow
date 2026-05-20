@@ -53,7 +53,7 @@ public class UserService {
         return toResponse(refreshed, token);
     }
 
-    private UserResponse toResponse(User user, String token) {
+    public UserResponse toResponse(User user, String token) {
         return new UserResponse(
                 user.getId(),
                 user.getEmail(),
