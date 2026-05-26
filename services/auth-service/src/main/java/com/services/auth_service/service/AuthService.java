@@ -1,6 +1,7 @@
 package com.services.auth_service.service;
 
 import com.services.auth_service.dto.LoginRequest;
+import com.services.auth_service.dto.RefreshRequest;
 import com.services.auth_service.dto.TokenResponse;
 import com.services.auth_service.model.RefreshToken;
 import com.services.auth_service.model.User;
@@ -8,6 +9,7 @@ import com.services.auth_service.repository.RefreshTokenRepository;
 import com.services.auth_service.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,37 @@ public class AuthService {
                 .build());
 
         return new TokenResponse(accessToken, refreshToken, 900L);
+    }
+
+    public TokenResponse refresh(RefreshRequest request) {
+        RefreshToken refreshToken = refreshRepo
+                .findByToken(request.refreshToken())
+                .orElseThrow(() ->
+                        new RuntimeException("Refresh token not found"));
+
+        if (refreshToken.isRevoked()) {
+            throw new RuntimeException("Refresh token has been revoked");
+        }
+
+        if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Refresh token has expired");
+        }
+
+        User user = userRepository.findById(refreshToken.getUserId())
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        String newAccessToken = jwtService.generateToken(user);
+
+        return new TokenResponse(newAccessToken, request.refreshToken(), 900L);
+    }
+
+    public void logOut (RefreshRequest request) {
+        RefreshToken refreshToken = refreshRepo
+                .findByToken(request.refreshToken())
+                .orElseThrow(() ->
+                        new RuntimeException("Refresh token not found"));
+        refreshToken.setRevoked(true);
     }
 }
 
