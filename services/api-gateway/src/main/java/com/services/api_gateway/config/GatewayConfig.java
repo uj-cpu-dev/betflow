@@ -41,4 +41,12 @@ public class GatewayConfig {
                 })
                 .build();
     }
+
+    @Bean
+    public RouterFunction<ServerResponse> oddsRoutes() {
+        return RouterFunctions.route()
+                .GET("/api/odds/**", HandlerFunctions.http())
+                .before(BeforeFilterFunctions.uri("http://localhost:8083"))
+                .build();
+    }
 }

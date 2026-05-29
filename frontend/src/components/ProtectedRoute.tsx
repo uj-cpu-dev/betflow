@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children }: Props) {
   const { token } = useAuthStore()
 
   if (!token) {
-    return <Navigate to="/register" replace />
+    return <Navigate to="/login" replace />
   }
 
   return <>{children}</>

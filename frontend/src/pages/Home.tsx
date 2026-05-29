@@ -1,45 +1,37 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore'
+import { useAuth } from '../hooks/useAuth'
 import { authApi } from '../api/authApi'
-import type { UserResponse } from '../types/api.types'
 
 export default function Home() {
-  const { token, logout } = useAuthStore()
+  const { token, logoutUser, isAuthenticated } = useAuth()
   const navigate = useNavigate()
-  const [user, setUser] = useState<UserResponse | null>(null)
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // If no token, send them to register
-    if (!token) {
-      navigate('/register')
-      return
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => authApi.getMe(token!),
+    enabled: isAuthenticated,
+    // If token is invalid, redirect to login
+    onError: () => {
+      logoutUser()
     }
+  })
 
-    // Call /me to get fresh user data
-    authApi.getMe(token)
-      .then(setUser)
-      .catch(() => {
-        // Token expired or invalid — log out and redirect
-        logout()
-        navigate('/register')
-      })
-      .finally(() => setLoading(false))
-  }, [token])
+  if (!isAuthenticated) {
+    navigate('/login')
+    return null
+  }
 
-  if (loading) return <div>Loading...</div>
-    if (!user) return null
+  if (isLoading) return <div>Loading...</div>
+  if (!user) return null
 
-    return (
-      <div style={{ maxWidth: 600, margin: '60px auto', padding: 24 }}>
-        <h2>Welcome, {user.username} 👋</h2>
-        <p>Email: {user.email}</p>
-        <p>Wallet balance: ${user.walletBalance.toFixed(2)}</p>
-        <p>Role: {user.role}</p>
-        <button onClick={() => { logout(); navigate('/register') }}>
-          Log out
-        </button>
-      </div>
-    )
- }
+  return (
+    <div style={{ maxWidth: 600, margin: '60px auto', padding: 24 }}>
+      <h2>Welcome, {user.username} 👋</h2>
+      <p>Email: {user.email}</p>
+      <p>Wallet balance: ${user.walletBalance.toFixed(2)}</p>
+      <p>Role: {user.role}</p>
+      <button onClick={logoutUser}>Log out</button>
+    </div>
+  )
+}

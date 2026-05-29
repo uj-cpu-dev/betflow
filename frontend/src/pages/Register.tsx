@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { authApi } from '../api/authApi'
-import { useAuthStore } from '../store/authStore'
+import { useAuth } from '../hooks/useAuth'
 import type { RegisterRequest } from '../types/api.types'
 
 export default function Register() {
@@ -11,19 +9,15 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const { setAuth } = useAuthStore()
-  const navigate = useNavigate()
+  const { register } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      const user = await authApi.register(form)
-
-      setAuth(user, user.accessToken)
-      navigate('/home')
-
+      await register(form)
+      // useAuth.register() handles setAuth + navigate('/home')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed')
     } finally {

@@ -1,0 +1,34 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: odds-service
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/betflow_users
+    username: betflow
+    password: betflow_dev
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+
+  flyway:
+    enabled: false
+
+odds:
+  api:
+    key: YOUR_API_KEY_HERE
+    base-url: https://api.the-odds-api.com/v4
+    sport: soccer_epl
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
