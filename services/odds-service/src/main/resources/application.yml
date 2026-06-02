@@ -7,6 +7,11 @@ spring:
   threads:
     virtual:
       enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: betflow_dev
 
   datasource:
     url: jdbc:postgresql://localhost:5432/betflow_users
@@ -17,15 +22,15 @@ spring:
     hibernate:
       ddl-auto: none
     show-sql: false
+    open-in-view: false
 
   flyway:
     enabled: false
 
 odds:
   api:
-    key: YOUR_API_KEY_HERE
+    key: 2579fef4b4bedb73607f4b44b461eb66
     base-url: https://api.the-odds-api.com/v4
-    sport: soccer_epl
 
 management:
   endpoints:
