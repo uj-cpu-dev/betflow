@@ -3,15 +3,18 @@ package com.services.odds_service.client;
 import com.services.odds_service.dto.MatchDto;
 import com.services.odds_service.dto.SportDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class OddsApiClient {
 
     private final RestClient restClient;
@@ -21,12 +24,6 @@ public class OddsApiClient {
 
     @Value("${odds.api.base-url}")
     private String baseUrl;
-
-    @jakarta.annotation.PostConstruct
-    public void init() {
-        System.out.println("=== API KEY LOADED: [" + apiKey + "] ===");
-        System.out.println("=== BASE URL LOADED: [" + baseUrl + "] ===");
-    }
 
     public List<SportDto> getSports() {
         return restClient.get()
@@ -44,5 +41,10 @@ public class OddsApiClient {
                         + "&oddsFormat=decimal")
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<MatchDto>>() {});
+    }
+
+    public List<MatchDto> getMatchesFallback(String sport, Exception e) {
+        log.warn("Circuit breaker open for sport {}: {}", sport, e.getMessage());
+        return List.of(); // return empty list, cache still serves last good data
     }
 }
