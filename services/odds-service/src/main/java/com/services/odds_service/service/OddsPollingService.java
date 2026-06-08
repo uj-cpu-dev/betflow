@@ -15,8 +15,9 @@ public class OddsPollingService {
     private final OddsService oddsService;
 
     private static final List<String> ACTIVE_SPORTS = List.of(
-            "tennis_atp_french_open",
-            "tennis_wta_french_open"
+            "cricket_t20_blast",
+            "baseball_mlb",
+            "basketball_nba"
     );
 
     @Scheduled(fixedRateString = "${odds.poll.interval-ms:300000}") // 5 min default
