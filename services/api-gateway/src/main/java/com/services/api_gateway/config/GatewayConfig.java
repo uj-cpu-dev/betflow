@@ -49,4 +49,23 @@ public class GatewayConfig {
                 .before(BeforeFilterFunctions.uri("http://localhost:8083"))
                 .build();
     }
+
+
+    @Bean
+    public RouterFunction<ServerResponse> betRoutes() {
+        return RouterFunctions.route()
+                .GET("/api/bets/**", HandlerFunctions.http())
+                .POST("/api/bets/**", HandlerFunctions.http())
+                .before(BeforeFilterFunctions.uri("http://localhost:8084"))
+                .before(request -> {
+                    String auth = request.headers().firstHeader("Authorization");
+                    if (auth != null) {
+                        return ServerRequest.from(request)
+                                .header("Authorization", auth)
+                                .build();
+                    }
+                    return request;
+                })
+                .build();
+    }
 }
