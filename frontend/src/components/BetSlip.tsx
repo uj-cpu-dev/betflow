@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuthStore } from '../store/authStore';
 
 interface BetSelection {
   matchId: string;
@@ -15,10 +16,68 @@ interface BetSlipProps {
 
 export default function BetSlip({ selection, onClose }: BetSlipProps) {
   const [stake, setStake] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const { user, token } = useAuthStore();
+
+  function getUserIdFromToken(token: string): string | null {
+    try {
+      const payload = token.split('.')[1];
+      const decoded = JSON.parse(atob(payload));
+      return decoded.userId ?? null;
+    } catch {
+      return null;
+    }
+  }
 
   const potentialReturn = selection && stake
     ? (parseFloat(stake) * selection.odds).toFixed(2)
     : null;
+
+  async function handlePlaceBet() {
+    const userId = getUserIdFromToken(token!);
+    if (!userId) {
+      setError('Session expired. Please log in again.');
+      return;
+    }
+
+    if (!selection || !stake) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/bets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: userId,
+          matchId: selection.matchId,
+          homeTeam: selection.homeTeam,
+          awayTeam: selection.awayTeam,
+          outcomeName: selection.outcomeName,
+          odds: selection.odds,
+          stake: parseFloat(stake),
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to place bet');
+
+      setSuccess(true);
+      setStake('');
+      setTimeout(() => {
+        setSuccess(false);
+        onClose();
+      }, 2000);
+    } catch (e) {
+      setError('Failed to place bet. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (!selection) return null;
 
@@ -56,11 +115,20 @@ export default function BetSlip({ selection, onClose }: BetSlipProps) {
         </div>
       )}
 
+      {error && (
+        <p className="text-red-500 text-sm mb-4">{error}</p>
+      )}
+
+      {success && (
+        <p className="text-green-600 text-sm mb-4 font-medium">Bet placed successfully!</p>
+      )}
+
       <button
-        disabled={!stake || parseFloat(stake) <= 0}
+        onClick={handlePlaceBet}
+        disabled={!stake || parseFloat(stake) <= 0 || loading}
         className="mt-auto w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
       >
-        Place Bet
+        {loading ? 'Placing...' : 'Place Bet'}
       </button>
     </div>
   );
