@@ -2,6 +2,7 @@ package com.services.bet_service.service;
 
 import com.services.bet_service.dto.BetResponse;
 import com.services.bet_service.dto.PlaceBetRequest;
+import com.services.bet_service.event.BetPlacedEvent;
 import com.services.bet_service.model.Bet;
 import com.services.bet_service.repository.BetRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,8 @@ import java.util.UUID;
 public class BetService {
 
     private final BetRepository betRepository;
+
+    private final KafkaProducerService kafkaProducerService;
 
     public BetResponse placeBet(PlaceBetRequest request) {
         BigDecimal potentialReturn = request.getStake()
@@ -38,6 +41,20 @@ public class BetService {
 
         Bet saved = betRepository.save(bet);
         log.info("Bet placed: {} for user {}", saved.getId(), saved.getUserId());
+
+        kafkaProducerService.publishBetPlaced(BetPlacedEvent.builder()
+                .betId(saved.getId())
+                .userId(saved.getUserId())
+                .matchId(saved.getMatchId())
+                .homeTeam(saved.getHomeTeam())
+                .awayTeam(saved.getAwayTeam())
+                .outcomeName(saved.getOutcomeName())
+                .odds(saved.getOdds())
+                .stake(saved.getStake())
+                .potentialReturn(saved.getPotentialReturn())
+                .placedAt(saved.getCreatedAt())
+                .build());
+
         return BetResponse.from(saved);
     }
 
