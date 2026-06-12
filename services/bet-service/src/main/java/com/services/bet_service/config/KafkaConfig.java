@@ -3,14 +3,16 @@ package com.services.bet_service.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.services.bet_service.event.BetPlacedEvent;
+import com.services.bet_service.event.BetSettledEvent;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +22,9 @@ public class KafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
+
+    @Value("${spring.kafka.consumer.group-id}")
+    private String groupId;
 
     @Bean
     public ObjectMapper kafkaObjectMapper() {
@@ -58,5 +63,40 @@ public class KafkaConfig {
     public KafkaTemplate<String, BetPlacedEvent> kafkaTemplate(
             ProducerFactory<String, BetPlacedEvent> producerFactory) {
         return new KafkaTemplate<>(producerFactory);
+    }
+
+    @Bean
+    public ConsumerFactory<String, BetSettledEvent> consumerFactory(ObjectMapper kafkaObjectMapper) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+
+        DefaultKafkaConsumerFactory<String, BetSettledEvent> factory =
+                new DefaultKafkaConsumerFactory<>(config);
+
+        factory.setValueDeserializer(new org.apache.kafka.common.serialization.Deserializer<>() {
+            @Override
+            public BetSettledEvent deserialize(String topic, byte[] data) {
+                try {
+                    return kafkaObjectMapper.readValue(data, BetSettledEvent.class);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to deserialize BetSettledEvent", e);
+                }
+            }
+        });
+
+        return factory;
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, BetSettledEvent> kafkaListenerContainerFactory(
+            ConsumerFactory<String, BetSettledEvent> consumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, BetSettledEvent> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory);
+        return factory;
     }
 }

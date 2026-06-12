@@ -21,6 +21,9 @@ spring:
     locations: classpath:db/migration
   kafka:
     bootstrap-servers: localhost:9092
+    consumer:
+      group-id: bet-service
+      auto-offset-reset: earliest
 
 management:
   endpoints:
